@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 const PORT = 3000;
+const cors = require('cors');
+app.use(cors());
 
 app.use(express.json());
 
@@ -22,12 +24,23 @@ function saveUsers(users) {
 app.post('/signup', (req, res) => {
     const { username, password } = req.body;
     const users = loadUsers();
+    // Перевірка на 6 букв
+    if (!username || typeof username !== 'string' || username.length !== 6 || !/^[a-zA-Zа-яА-ЯёЁіІїЇєЄґҐ]{6}$/.test(username)) {
+        return res.status(400).json({ error: "Нік має бути рівно з 6 букв (лише літери)" });
+    }
     if (users[username]) {
         return res.status(400).json({ error: 'Ім\'я користувача вже існує' });
     }
     users[username] = { password, points: 0, autoClickerCount: 0, autoClickerCost: 100, leaderboard: [], taskCompletedToday: false, lastTaskDate: '' };
     saveUsers(users);
     res.json({ message: 'Обліковий запис створено' });
+});
+
+// Гостьовий вхід
+app.post('/guest', (req, res) => {
+    // Генеруємо унікальний гостьовий id
+    const guestId = 'Гість_' + Math.random().toString(36).substring(2, 8);
+    res.json({ message: 'Гостьовий вхід', guest: true, username: guestId, data: { points: 0, autoClickerCount: 0, autoClickerCost: 100, leaderboard: [], taskCompletedToday: false, lastTaskDate: '' } });
 });
 
 app.post('/login', (req, res) => {
